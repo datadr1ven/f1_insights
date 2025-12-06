@@ -1,0 +1,12 @@
+{
+  "instanceName": "x8ki-letl-twmt",
+  "workspaceName": "F1 Insight Engine",
+  "workspaceId": 133497,
+  "branch": "v1",
+  "paths": {
+    "functions": "functions",
+    "tables": "tables",
+    "apis": "apis",
+    "tasks": "tasks"
+  }
+}
