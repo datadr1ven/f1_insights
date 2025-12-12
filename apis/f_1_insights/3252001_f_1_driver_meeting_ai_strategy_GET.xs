@@ -77,3 +77,4 @@ query f1_driver_meeting_ai_strategy verb=GET {
 
   response = $strategy_suggestion
 }
+

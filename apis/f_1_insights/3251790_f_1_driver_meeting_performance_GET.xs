@@ -34,12 +34,13 @@ query f1_driver_meeting_performance verb=GET {
   
     var $raw {
       value = {
-        laps     : $laps_data
-        positions: $positions_data
-        weather  : $weather_data
+        laps     : $laps_data.response.result
+        positions: $positions_data.response.result
+        weather  : $weather_data.response.result
       }
     }
   }
 
   response = $raw
 }
+

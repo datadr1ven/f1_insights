@@ -35,14 +35,6 @@ query f1_driver_meeting_strategy verb=GET {
         |set:"meeting_key":$input.meeting_key
     } as $weather_response
   
-    var $raw {
-      value = {
-        laps     : $laps_response.response.result
-        positions: $positions_response.response.result
-        weather  : $weather_response.response.result
-      }
-    }
-  
     var $pref {
       value = $fanPrefs|to_lower
     }
@@ -55,8 +47,20 @@ query f1_driver_meeting_strategy verb=GET {
       value = $multipliers|get:$pref
     }
   
+    var $weather {
+      value = $weather_response.response.result
+    }
+  
+    var $weather_summary {
+      value = {
+        rain    : $weather[-1].rainfall > 0
+        wind_kph: $weather[-1].wind_speed
+        temp_c  : $weather[01].track_temperature
+      }
+    }
+  
     var $weather_mult {
-      value = ($weather.response.result[0].rain_intensity > 0) ? 0.75 : 1.0
+      value = ($weather[0].rain > 0) ? 0.75 : 1.0
     }
   
     conditional {
@@ -69,6 +73,10 @@ query f1_driver_meeting_strategy verb=GET {
   
     var $avg_position {
       value = 10
+    }
+  
+    var $latest_position {
+      value = $positions_response.response.result[-1]
     }
   
     conditional {
@@ -88,7 +96,7 @@ query f1_driver_meeting_strategy verb=GET {
     }
   
     var $personalized_score {
-      value = math.round(($base_score * $multiplier * $weather_mult), 2)
+      value = $base_score * $multiplier * $weather_mult
     }
   
     var.update $personalized_score {
@@ -121,16 +129,21 @@ query f1_driver_meeting_strategy verb=GET {
   
     var $enrich {
       value = {
+        driver_number     : $input.driver_number
+        latest_position   : $latest_position.position
         personalized_score: $personalized_score
         tip               : $tip
+        weather_summary   : $weather_summary
         applied_preference: $fanPrefs
       }
     }
   
     var $result {
-      value = $raw|merge:$enrich
+      value = $enrich
     }
   }
 
   response = $enrich
 }
+
+
