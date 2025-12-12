@@ -1,61 +1,43 @@
 query f1_driver_meeting_performance verb=GET {
+  api_group = "f1_insights"
+
   input {
     // The meeting key bound from URL path
     text meeting_key
   
-    // Fan preferences
-    text fanPrefs?=balanced
+    text driver_number? filters=trim
   }
 
   stack {
-    var $fanPrefs {
-      value = $input.fanPrefs
-    }
-  
     api.request {
       url = "https://api.openf1.org/v1/laps"
       method = "GET"
       params = {}
         |set:"meeting_key":$input.meeting_key
-    } as $laps_response
-  
-    conditional {
-      if ($laps_response.response.status != 200) {
-        var $laps {
-          value = []
-        }
-      }
-    
-      else {
-        var $laps {
-          value = $laps_response.response.result
-        }
-      }
-    }
+        |set:"driver_number":$input.driver_number
+    } as $laps_data
   
     api.request {
       url = "https://api.openf1.org/v1/position"
       method = "GET"
       params = {}
         |set:"meeting_key":$input.meeting_key
-    } as $positions_response
+        |set:"driver_number":$input.driver_number
+    } as $positions_data
   
-    conditional {
-      if ($positions_response.response.status != 200) {
-        var $positions {
-          value = null
-        }
-      }
-    
-      else {
-        var $positions {
-          value = $positions_response.response.result
-        }
-      }
-    }
+    api.request {
+      url = "https://api.openf1.org/v1/weather"
+      method = "GET"
+      params = {}
+        |set:"meeting_key":$input.meeting_key
+    } as $weather_data
   
     var $raw {
-      value = {laps: $laps, positions: $positions}
+      value = {
+        laps     : $laps_data
+        positions: $positions_data
+        weather  : $weather_data
+      }
     }
   }
 

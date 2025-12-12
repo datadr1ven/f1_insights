@@ -1,4 +1,6 @@
 query f1_driver_meeting_strategy verb=GET {
+  api_group = "f1_insights"
+
   input {
     text meeting_key
     text fanPrefs?=balanced
@@ -18,20 +20,6 @@ query f1_driver_meeting_strategy verb=GET {
         |set:"driver_number":$input.driver_number
     } as $laps_response
   
-    conditional {
-      if ($laps_response.response.status != 200) {
-        var $laps {
-          value = []
-        }
-      }
-    
-      else {
-        var $laps {
-          value = $laps_response.response.result
-        }
-      }
-    }
-  
     api.request {
       url = "https://api.openf1.org/v1/position"
       method = "GET"
@@ -40,22 +28,19 @@ query f1_driver_meeting_strategy verb=GET {
         |set:"driver_number":$input.driver_number
     } as $positions_response
   
-    conditional {
-      if ($positions_response.response.status != 200) {
-        var $positions {
-          value = null
-        }
-      }
-    
-      else {
-        var $positions {
-          value = $positions_response.response.result
-        }
-      }
-    }
+    api.request {
+      url = "https://api.openf1.org/v1/weather"
+      method = "GET"
+      params = {}
+        |set:"meeting_key":$input.meeting_key
+    } as $weather_response
   
     var $raw {
-      value = {laps: $laps, positions: $positions}
+      value = {
+        laps     : $laps_response.response.result
+        positions: $positions_response.response.result
+        weather  : $weather_response.response.result
+      }
     }
   
     var $pref {
@@ -68,6 +53,10 @@ query f1_driver_meeting_strategy verb=GET {
   
     var $multiplier {
       value = $multipliers|get:$pref
+    }
+  
+    var $weather_mult {
+      value = ($weather.response.result[0].rain_intensity > 0) ? 0.75 : 1.0
     }
   
     conditional {
@@ -83,8 +72,8 @@ query f1_driver_meeting_strategy verb=GET {
     }
   
     conditional {
-      if ($positions != null && ($positions|count) > 0) {
-        array.map ($positions) {
+      if (($positions_response.response.result != null) && ($positions_response.response.result.count > 0)) {
+        array.map ($positions_response.response.result) {
           by = $this.position
         } as $pos_values
       
@@ -99,7 +88,7 @@ query f1_driver_meeting_strategy verb=GET {
     }
   
     var $personalized_score {
-      value = ($base_score * $multiplier)|round:2
+      value = math.round(($base_score * $multiplier * $weather_mult), 2)
     }
   
     var.update $personalized_score {

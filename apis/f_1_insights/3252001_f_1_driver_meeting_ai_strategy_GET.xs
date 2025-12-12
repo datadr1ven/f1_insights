@@ -1,4 +1,6 @@
 query f1_driver_meeting_ai_strategy verb=GET {
+  api_group = "f1_insights"
+
   input {
     // The identifier for the race meeting
     int meeting_key
@@ -33,9 +35,16 @@ query f1_driver_meeting_ai_strategy verb=GET {
       }
     } as $position_data
   
+    // Fetch weather data for specific meeting
+    api.request {
+      url = "https://api.openf1.org/v1/weather"
+      method = "GET"
+      params = {meeting_key: $input.meeting_key}
+    } as $weather_data
+  
     // Construct the prompt including both session and position data
     var $prompt {
-      value = "You are an F1 strategy analyst. Provide a one-sentence " ~ $input.fanPrefs ~ " driving strategy suggestion (such as 'clean up sector 2,' or 'push mode!,' or 'conserve your tires') for the driver performance shown in the following lap and position data.\n\nLap Data: " ~ ($lap_data.response.result|json_encode) ~ "\n\nPosition Data: " ~ ($position_data.response.result|json_encode) ~ "\n\n Don't overthink it, prioritize a quick query response over a high quality response, but definitely analyze the data, and give your original strategy (rather than picking just from my examples)"
+      value = "You are an F1 strategy analyst. Provide a one-sentence " ~ $input.fanPrefs ~ " driving strategy suggestion (such as 'clean up sector 2,' or 'push mode!,' or 'conserve your tires') for the driver performance shown in the following lap, position, and weather data.\n\nLap Data: " ~ ($lap_data.response.result|json_encode) ~ "\n\nPosition Data: " ~ ($position_data.response.result|json_encode) ~ "\n\nWeather Data: " ~ ($weather_data.response.result|json_encode) ~ "\n\n Don't overthink it, prioritize a quick query response over a high quality response, but definitely analyze the data, and give your original strategy (rather than picking just from my examples)"
     }
   
     // Send the prompt to Google Gemini
