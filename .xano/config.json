@@ -4,9 +4,6 @@
   "workspaceId": 133497,
   "branch": "v1",
   "paths": {
-    "functions": "functions",
-    "tables": "tables",
     "apis": "apis",
-    "tasks": "tasks"
   }
 }
